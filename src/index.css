@@ -1,0 +1,198 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Basis-Body-Styles */
+body {
+  font-family: 'DM Sans', system-ui, sans-serif;
+  transition: background-color 0.3s ease, color 0.3s ease;
+  margin: 0;
+  min-height: 100vh;
+}
+
+body.dark {
+  background-color: #0a1628;
+  color: #faf8f5;
+}
+
+body.light {
+  background-color: #f8fafc;
+  color: #1e293b;
+}
+
+/* Custom scrollbar - Dark Mode */
+body.dark::-webkit-scrollbar,
+body.dark ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+body.dark::-webkit-scrollbar-track,
+body.dark ::-webkit-scrollbar-track {
+  background: rgba(15, 33, 64, 0.5);
+  border-radius: 4px;
+}
+
+body.dark::-webkit-scrollbar-thumb,
+body.dark ::-webkit-scrollbar-thumb {
+  background: rgba(212, 168, 83, 0.3);
+  border-radius: 4px;
+}
+
+body.dark::-webkit-scrollbar-thumb:hover,
+body.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(212, 168, 83, 0.5);
+}
+
+/* Custom scrollbar - Light Mode */
+body.light::-webkit-scrollbar,
+body.light ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+body.light::-webkit-scrollbar-track,
+body.light ::-webkit-scrollbar-track {
+  background: rgba(226, 232, 240, 0.5);
+  border-radius: 4px;
+}
+
+body.light::-webkit-scrollbar-thumb,
+body.light ::-webkit-scrollbar-thumb {
+  background: rgba(20, 184, 166, 0.3);
+  border-radius: 4px;
+}
+
+body.light::-webkit-scrollbar-thumb:hover,
+body.light ::-webkit-scrollbar-thumb:hover {
+  background: rgba(20, 184, 166, 0.5);
+}
+
+/* Smooth transitions */
+* {
+  transition-property: background-color, border-color, color, fill, stroke;
+  transition-timing-function: ease-in-out;
+  transition-duration: 150ms;
+}
+
+/* Prevent text selection on buttons */
+button {
+  user-select: none;
+}
+
+/* Input number spinner entfernen */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+/* Selection color */
+body.dark ::selection {
+  background-color: rgba(212, 168, 83, 0.3);
+  color: #faf8f5;
+}
+
+body.light ::selection {
+  background-color: rgba(20, 184, 166, 0.3);
+  color: #1e293b;
+}
+
+/* Shimmer-Effekt */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.shimmer {
+  position: relative;
+  overflow: hidden;
+}
+
+.shimmer::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(212, 168, 83, 0.08) 25%,
+    rgba(212, 168, 83, 0.15) 50%,
+    rgba(212, 168, 83, 0.08) 75%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 8s ease-in-out infinite;
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+body.light .shimmer::after {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(20, 184, 166, 0.08) 25%,
+    rgba(20, 184, 166, 0.12) 50%,
+    rgba(20, 184, 166, 0.08) 75%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+}
+
+/* Toast Animation */
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.toast-enter {
+  animation: slideUp 0.3s ease-out;
+}
+
+/* Glow-Pulse */
+@keyframes glow-pulse {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(212, 168, 83, 0.1),
+                0 0 40px rgba(212, 168, 83, 0.05);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(212, 168, 83, 0.2),
+                0 0 60px rgba(212, 168, 83, 0.1);
+  }
+}
+
+body.dark .glow-pulse {
+  animation: glow-pulse 4s ease-in-out infinite;
+}
+
+@keyframes glow-pulse-light {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(20, 184, 166, 0.1),
+                0 0 40px rgba(20, 184, 166, 0.05);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(20, 184, 166, 0.15),
+                0 0 60px rgba(20, 184, 166, 0.08);
+  }
+}
+
+body.light .glow-pulse {
+  animation: glow-pulse-light 4s ease-in-out infinite;
+}
