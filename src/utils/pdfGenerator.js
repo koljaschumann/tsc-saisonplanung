@@ -140,6 +140,7 @@ export function generateMotorboatPlanPDF(events, season) {
   });
 
   const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
 
   // Header
   doc.setFillColor(10, 22, 40);
@@ -230,6 +231,20 @@ export function generateMotorboatPlanPDF(events, season) {
       yOffset = 20;
     }
   });
+
+  // Footer mit Seitenzahlen
+  const totalPages = doc.internal.getNumberOfPages();
+  for (let i = 1; i <= totalPages; i++) {
+    doc.setPage(i);
+    doc.setFontSize(8);
+    doc.setTextColor(150);
+    doc.text(
+      `Seite ${i} von ${totalPages}`,
+      pageWidth / 2,
+      pageHeight - 10,
+      { align: 'center' }
+    );
+  }
 
   return doc;
 }
