@@ -1089,6 +1089,8 @@ function AdminPage() {
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   const [feedbackType, setFeedbackType] = useState('bug');
+  const [feedbackStep, setFeedbackStep] = useState(1);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [feedbackData, setFeedbackData] = useState({
     title: '',
     description: '',
@@ -1165,6 +1167,7 @@ function AdminPage() {
 
   const openFeedbackModal = (type) => {
     setFeedbackType(type);
+    setFeedbackStep(1);
     setFeedbackData({
       title: '',
       description: '',
@@ -1178,20 +1181,33 @@ function AdminPage() {
     setShowFeedbackModal(true);
   };
 
-  const submitFeedback = () => {
-    if (!feedbackData.title.trim()) {
+  const nextFeedbackStep = () => {
+    if (feedbackStep === 1 && !feedbackData.title.trim()) {
       addToast('Bitte gib einen Titel ein', 'warning');
       return;
     }
-    if (!feedbackData.description.trim()) {
+    if (feedbackStep === 2 && !feedbackData.description.trim()) {
       addToast('Bitte beschreibe dein Anliegen', 'warning');
       return;
     }
+    const maxSteps = feedbackType === 'bug' ? 4 : 2;
+    if (feedbackStep < maxSteps) {
+      setFeedbackStep(prev => prev + 1);
+    } else {
+      submitFeedback();
+    }
+  };
 
-    const baseUrl = 'https://github.com/koljaschumann/tsc-saisonplanung/issues/new';
-    const labels = feedbackType === 'bug' ? 'bug' : 'enhancement';
+  const prevFeedbackStep = () => {
+    if (feedbackStep > 1) {
+      setFeedbackStep(prev => prev - 1);
+    }
+  };
+
+  const submitFeedback = async () => {
+    setIsSubmitting(true);
+
     const prefix = feedbackType === 'bug' ? '[Bug]' : '[Feature]';
-
     let body = `## Beschreibung\n${feedbackData.description}\n`;
 
     if (feedbackType === 'bug') {
@@ -1209,11 +1225,45 @@ function AdminPage() {
 
     body += `\n---\n*Gesendet von TSC Saisonplanung App*`;
 
-    const url = `${baseUrl}?labels=${labels}&title=${encodeURIComponent(`${prefix} ${feedbackData.title}`)}&body=${encodeURIComponent(body)}`;
-    window.open(url, '_blank');
+    try {
+      const response = await fetch('/api/create-issue', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: `${prefix} ${feedbackData.title}`,
+          body,
+          labels: [feedbackType === 'bug' ? 'bug' : 'enhancement']
+        })
+      });
 
-    setShowFeedbackModal(false);
-    addToast('Feedback wird in GitHub geöffnet', 'success');
+      const result = await response.json();
+
+      if (response.ok) {
+        setShowFeedbackModal(false);
+        setFeedbackStep(1);
+        addToast(`Feedback erfolgreich gesendet! (Issue #${result.issueNumber})`, 'success');
+      } else {
+        // Fallback: Open GitHub directly if API fails
+        console.error('API Error:', result);
+        const baseUrl = 'https://github.com/koljaschumann/tsc-saisonplanung/issues/new';
+        const labels = feedbackType === 'bug' ? 'bug' : 'enhancement';
+        const url = `${baseUrl}?labels=${labels}&title=${encodeURIComponent(`${prefix} ${feedbackData.title}`)}&body=${encodeURIComponent(body)}`;
+        window.open(url, '_blank');
+        setShowFeedbackModal(false);
+        addToast('Feedback wird in GitHub geöffnet (bitte dort absenden)', 'info');
+      }
+    } catch (error) {
+      console.error('Network Error:', error);
+      // Fallback: Open GitHub directly
+      const baseUrl = 'https://github.com/koljaschumann/tsc-saisonplanung/issues/new';
+      const labels = feedbackType === 'bug' ? 'bug' : 'enhancement';
+      const url = `${baseUrl}?labels=${labels}&title=${encodeURIComponent(`${prefix} ${feedbackData.title}`)}&body=${encodeURIComponent(body)}`;
+      window.open(url, '_blank');
+      setShowFeedbackModal(false);
+      addToast('Feedback wird in GitHub geöffnet (bitte dort absenden)', 'info');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const inputClass = `
@@ -1509,131 +1559,239 @@ function AdminPage() {
         </div>
       </Modal>
 
-      {/* Feedback Modal */}
+      {/* Feedback Modal - Step by Step Wizard */}
       <Modal
         isOpen={showFeedbackModal}
-        onClose={() => setShowFeedbackModal(false)}
+        onClose={() => { setShowFeedbackModal(false); setFeedbackStep(1); }}
         title={feedbackType === 'bug' ? '🐛 Bug melden' : '💡 Idee vorschlagen'}
         size="md"
       >
         <div className="space-y-4">
-          {/* AI Assistant Intro */}
-          <div className={`p-3 rounded-lg ${isDark ? 'bg-gold-400/10 border border-gold-400/20' : 'bg-teal-50 border border-teal-200'}`}>
-            <p className={`text-sm ${isDark ? 'text-gold-400' : 'text-teal-700'}`}>
-              🤖 <strong>Feedback-Assistent:</strong> {feedbackType === 'bug'
-                ? 'Beschreibe den Fehler so genau wie möglich. Je mehr Details, desto schneller können wir helfen!'
-                : 'Beschreibe deine Idee und wie sie die App verbessern würde. Wir freuen uns auf deinen Input!'}
-            </p>
+          {/* Progress Indicator */}
+          <div className="flex items-center gap-2">
+            {Array.from({ length: feedbackType === 'bug' ? 4 : 2 }).map((_, i) => (
+              <div
+                key={i}
+                className={`h-1.5 flex-1 rounded-full transition-all ${
+                  i + 1 <= feedbackStep
+                    ? isDark ? 'bg-gold-400' : 'bg-teal-500'
+                    : isDark ? 'bg-navy-700' : 'bg-gray-200'
+                }`}
+              />
+            ))}
           </div>
 
-          {/* Title */}
-          <div>
-            <label className={`block text-sm font-medium mb-1.5 ${isDark ? 'text-cream/80' : 'text-light-muted'}`}>
-              {feedbackType === 'bug' ? 'Was ist das Problem?' : 'Wie heißt deine Idee?'} *
-            </label>
-            <input
-              type="text"
-              value={feedbackData.title}
-              onChange={(e) => setFeedbackData(prev => ({ ...prev, title: e.target.value }))}
-              className={inputClass}
-              placeholder={feedbackType === 'bug' ? 'z.B. PDF-Export funktioniert nicht' : 'z.B. Kalender-Export als iCal'}
-            />
-            <p className={`mt-1 text-xs ${isDark ? 'text-cream/50' : 'text-light-muted'}`}>
-              💡 Kurz und prägnant - das wird der Titel des Issues
-            </p>
-          </div>
+          {/* Step 1: Title */}
+          {feedbackStep === 1 && (
+            <div className="space-y-4">
+              <div className={`p-4 rounded-xl ${isDark ? 'bg-gold-400/10 border border-gold-400/20' : 'bg-teal-50 border border-teal-200'}`}>
+                <div className="flex items-start gap-3">
+                  <span className="text-2xl">🤖</span>
+                  <div>
+                    <p className={`font-medium mb-1 ${isDark ? 'text-gold-400' : 'text-teal-700'}`}>
+                      Schritt 1: {feedbackType === 'bug' ? 'Das Problem benennen' : 'Deine Idee benennen'}
+                    </p>
+                    <p className={`text-sm ${isDark ? 'text-cream/70' : 'text-teal-600'}`}>
+                      {feedbackType === 'bug'
+                        ? 'Beschreibe das Problem in einem kurzen Satz. Was funktioniert nicht wie erwartet?'
+                        : 'Gib deiner Idee einen kurzen, aussagekräftigen Namen.'}
+                    </p>
+                  </div>
+                </div>
+              </div>
 
-          {/* Description */}
-          <div>
-            <label className={`block text-sm font-medium mb-1.5 ${isDark ? 'text-cream/80' : 'text-light-muted'}`}>
-              Beschreibung *
-            </label>
-            <textarea
-              value={feedbackData.description}
-              onChange={(e) => setFeedbackData(prev => ({ ...prev, description: e.target.value }))}
-              rows={3}
-              className={inputClass}
-              placeholder={feedbackType === 'bug'
-                ? 'Beschreibe was passiert ist...'
-                : 'Beschreibe deine Idee und warum sie nützlich wäre...'}
-            />
-          </div>
-
-          {/* Bug-specific fields */}
-          {feedbackType === 'bug' && (
-            <>
               <div>
-                <label className={`block text-sm font-medium mb-1.5 ${isDark ? 'text-cream/80' : 'text-light-muted'}`}>
+                <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-cream' : 'text-light-text'}`}>
+                  {feedbackType === 'bug' ? 'Was ist das Problem?' : 'Wie heißt deine Idee?'}
+                </label>
+                <input
+                  type="text"
+                  value={feedbackData.title}
+                  onChange={(e) => setFeedbackData(prev => ({ ...prev, title: e.target.value }))}
+                  className={`${inputClass} text-lg`}
+                  placeholder={feedbackType === 'bug' ? 'z.B. PDF-Export zeigt leere Seite' : 'z.B. Kalender als iCal exportieren'}
+                  autoFocus
+                />
+              </div>
+
+              <div className={`p-3 rounded-lg ${isDark ? 'bg-navy-800/50' : 'bg-gray-50'}`}>
+                <p className={`text-xs ${isDark ? 'text-cream/60' : 'text-light-muted'}`}>
+                  💡 <strong>Tipp:</strong> {feedbackType === 'bug'
+                    ? 'Sei spezifisch! "PDF-Export zeigt leere Seite" ist besser als "PDF funktioniert nicht".'
+                    : 'Ein guter Titel fasst die Idee in 3-7 Wörtern zusammen.'}
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Step 2: Description */}
+          {feedbackStep === 2 && (
+            <div className="space-y-4">
+              <div className={`p-4 rounded-xl ${isDark ? 'bg-gold-400/10 border border-gold-400/20' : 'bg-teal-50 border border-teal-200'}`}>
+                <div className="flex items-start gap-3">
+                  <span className="text-2xl">🤖</span>
+                  <div>
+                    <p className={`font-medium mb-1 ${isDark ? 'text-gold-400' : 'text-teal-700'}`}>
+                      Schritt 2: Details beschreiben
+                    </p>
+                    <p className={`text-sm ${isDark ? 'text-cream/70' : 'text-teal-600'}`}>
+                      {feedbackType === 'bug'
+                        ? 'Beschreibe genauer, was passiert ist. Wann tritt der Fehler auf? Was hast du vorher gemacht?'
+                        : 'Erkläre deine Idee genauer. Welches Problem löst sie? Wie würde sie funktionieren?'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className={`p-3 rounded-lg mb-2 ${isDark ? 'bg-navy-800' : 'bg-gray-100'}`}>
+                <p className={`text-sm font-medium ${isDark ? 'text-cream' : 'text-light-text'}`}>
+                  📝 "{feedbackData.title}"
+                </p>
+              </div>
+
+              <div>
+                <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-cream' : 'text-light-text'}`}>
+                  Beschreibung
+                </label>
+                <textarea
+                  value={feedbackData.description}
+                  onChange={(e) => setFeedbackData(prev => ({ ...prev, description: e.target.value }))}
+                  rows={5}
+                  className={inputClass}
+                  placeholder={feedbackType === 'bug'
+                    ? 'Beschreibe was passiert ist...\n\nz.B. "Wenn ich im Admin-Bereich auf PDF-Export klicke und dann Saisonkalender wähle, öffnet sich das PDF, aber es ist komplett leer."'
+                    : 'Beschreibe deine Idee...\n\nz.B. "Es wäre toll, wenn man den Kalender als iCal-Datei exportieren könnte, um die Termine direkt in Google Calendar oder Outlook zu importieren."'}
+                  autoFocus
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Step 3: Steps to Reproduce (Bug only) */}
+          {feedbackStep === 3 && feedbackType === 'bug' && (
+            <div className="space-y-4">
+              <div className={`p-4 rounded-xl ${isDark ? 'bg-gold-400/10 border border-gold-400/20' : 'bg-teal-50 border border-teal-200'}`}>
+                <div className="flex items-start gap-3">
+                  <span className="text-2xl">🤖</span>
+                  <div>
+                    <p className={`font-medium mb-1 ${isDark ? 'text-gold-400' : 'text-teal-700'}`}>
+                      Schritt 3: Wie kann ich den Fehler nachstellen?
+                    </p>
+                    <p className={`text-sm ${isDark ? 'text-cream/70' : 'text-teal-600'}`}>
+                      Beschreibe die Schritte, die zum Fehler führen. Das hilft uns, das Problem zu finden und zu beheben.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-cream' : 'text-light-text'}`}>
                   Schritte zum Reproduzieren
                 </label>
                 <textarea
                   value={feedbackData.steps}
                   onChange={(e) => setFeedbackData(prev => ({ ...prev, steps: e.target.value }))}
-                  rows={3}
+                  rows={5}
                   className={inputClass}
-                  placeholder="1. Gehe zu Admin-Bereich&#10;2. Klicke auf PDF-Export&#10;3. Wähle Saisonkalender..."
+                  placeholder="1. Melde dich als Admin an&#10;2. Gehe zum Admin-Bereich&#10;3. Klicke auf 'Demo-Daten laden'&#10;4. Klicke auf 'Saisonkalender exportieren'&#10;5. Das PDF ist leer"
+                  autoFocus
                 />
-                <p className={`mt-1 text-xs ${isDark ? 'text-cream/50' : 'text-light-muted'}`}>
-                  💡 Nummerierte Schritte helfen uns, den Fehler nachzustellen
-                </p>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className={`p-3 rounded-lg ${isDark ? 'bg-navy-800/50' : 'bg-gray-50'}`}>
+                <p className={`text-xs ${isDark ? 'text-cream/60' : 'text-light-muted'}`}>
+                  💡 <strong>Tipp:</strong> Nummeriere die Schritte (1., 2., 3., ...) - das macht es einfacher zu folgen!
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Step 4: Expected vs Actual (Bug only) */}
+          {feedbackStep === 4 && feedbackType === 'bug' && (
+            <div className="space-y-4">
+              <div className={`p-4 rounded-xl ${isDark ? 'bg-gold-400/10 border border-gold-400/20' : 'bg-teal-50 border border-teal-200'}`}>
+                <div className="flex items-start gap-3">
+                  <span className="text-2xl">🤖</span>
+                  <div>
+                    <p className={`font-medium mb-1 ${isDark ? 'text-gold-400' : 'text-teal-700'}`}>
+                      Schritt 4: Erwartet vs. Tatsächlich
+                    </p>
+                    <p className={`text-sm ${isDark ? 'text-cream/70' : 'text-teal-600'}`}>
+                      Fast geschafft! Beschreibe kurz, was passieren sollte und was stattdessen passiert.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4">
                 <div>
-                  <label className={`block text-sm font-medium mb-1.5 ${isDark ? 'text-cream/80' : 'text-light-muted'}`}>
-                    Erwartetes Verhalten
+                  <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-cream' : 'text-light-text'}`}>
+                    ✅ Was sollte passieren?
                   </label>
                   <textarea
                     value={feedbackData.expected}
                     onChange={(e) => setFeedbackData(prev => ({ ...prev, expected: e.target.value }))}
                     rows={2}
                     className={inputClass}
-                    placeholder="Was sollte passieren?"
+                    placeholder="z.B. Das PDF sollte alle Veranstaltungen anzeigen"
+                    autoFocus
                   />
                 </div>
                 <div>
-                  <label className={`block text-sm font-medium mb-1.5 ${isDark ? 'text-cream/80' : 'text-light-muted'}`}>
-                    Aktuelles Verhalten
+                  <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-cream' : 'text-light-text'}`}>
+                    ❌ Was passiert stattdessen?
                   </label>
                   <textarea
                     value={feedbackData.actual}
                     onChange={(e) => setFeedbackData(prev => ({ ...prev, actual: e.target.value }))}
                     rows={2}
                     className={inputClass}
-                    placeholder="Was passiert stattdessen?"
+                    placeholder="z.B. Das PDF ist komplett leer"
                   />
                 </div>
               </div>
 
               <div className={`p-3 rounded-lg ${isDark ? 'bg-navy-800/50' : 'bg-gray-50'}`}>
                 <p className={`text-xs ${isDark ? 'text-cream/60' : 'text-light-muted'}`}>
-                  📱 <strong>Automatisch erkannt:</strong> {feedbackData.browser} auf {/Mobile|Android|iPhone/i.test(navigator.userAgent) ? 'Mobilgerät' : 'Desktop'}
+                  📱 <strong>System:</strong> {feedbackData.browser} auf {/Mobile|Android|iPhone/i.test(navigator.userAgent) ? 'Mobilgerät' : 'Desktop'} (wird automatisch mitgesendet)
                 </p>
               </div>
-            </>
+            </div>
           )}
 
-          {/* Submit Buttons */}
+          {/* Navigation Buttons */}
           <div className="flex gap-3 pt-2">
+            {feedbackStep > 1 ? (
+              <Button
+                variant="secondary"
+                onClick={prevFeedbackStep}
+                className="flex-1"
+              >
+                ← Zurück
+              </Button>
+            ) : (
+              <Button
+                variant="secondary"
+                onClick={() => { setShowFeedbackModal(false); setFeedbackStep(1); }}
+                className="flex-1"
+              >
+                Abbrechen
+              </Button>
+            )}
             <Button
-              variant="secondary"
-              onClick={() => setShowFeedbackModal(false)}
+              onClick={nextFeedbackStep}
               className="flex-1"
+              disabled={isSubmitting}
             >
-              Abbrechen
-            </Button>
-            <Button
-              onClick={submitFeedback}
-              className="flex-1"
-              icon={Icons.check}
-            >
-              An GitHub senden
+              {isSubmitting ? (
+                'Wird gesendet...'
+              ) : feedbackStep === (feedbackType === 'bug' ? 4 : 2) ? (
+                '✓ Absenden'
+              ) : (
+                'Weiter →'
+              )}
             </Button>
           </div>
-
-          <p className={`text-xs text-center ${isDark ? 'text-cream/40' : 'text-light-muted'}`}>
-            Das Feedback wird als GitHub Issue erstellt. Du wirst zu GitHub weitergeleitet.
-          </p>
         </div>
       </Modal>
     </div>
