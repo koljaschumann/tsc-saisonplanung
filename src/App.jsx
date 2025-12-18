@@ -1152,7 +1152,7 @@ function AdminPage() {
   };
 
   const handleFeedback = (type) => {
-    const baseUrl = 'https://github.com/KoljaL/tsc-saisonplanung/issues/new';
+    const baseUrl = 'https://github.com/koljaschumann/tsc-saisonplanung/issues/new';
     const labels = type === 'bug' ? 'bug' : 'enhancement';
     const title = type === 'bug' ? '[Bug] ' : '[Feature] ';
     const body = encodeURIComponent(`## Beschreibung
