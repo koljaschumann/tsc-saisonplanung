@@ -74,9 +74,11 @@ function LoginScreen() {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <div className="flex justify-center mb-4">
-            <IconBadge icon={Icons.sailboat} color="gold" size="lg" />
+            <div className="float sparkle">
+              <IconBadge icon={Icons.sailboat} color="gold" size="lg" />
+            </div>
           </div>
-          <h1 className={`text-3xl font-bold mb-2 ${isDark ? 'text-cream' : 'text-light-text'}`}>
+          <h1 className={`text-3xl font-bold mb-2 text-shimmer ${isDark ? 'text-cream' : 'text-light-text'}`}>
             TSC Jugend
           </h1>
           <p className={`text-lg ${isDark ? 'text-cream/60' : 'text-light-muted'}`}>
@@ -84,7 +86,7 @@ function LoginScreen() {
           </p>
         </div>
 
-        <GlassCard>
+        <GlassCard shimmer gradientBorder>
           <h2 className={`text-xl font-semibold mb-4 ${isDark ? 'text-cream' : 'text-light-text'}`}>
             Trainer-Anmeldung
           </h2>
@@ -456,9 +458,11 @@ function DashboardPage({ setCurrentPage }) {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         {/* Deadline Card */}
-        <GlassCard>
+        <GlassCard shimmer hoverLift animate>
           <div className="flex items-center gap-3 mb-3">
-            <IconBadge icon={Icons.clock} color={deadlinePassed ? 'red' : 'gold'} />
+            <div className={deadlinePassed ? '' : 'pulse-soft'}>
+              <IconBadge icon={Icons.clock} color={deadlinePassed ? 'red' : 'gold'} />
+            </div>
             <div>
               <p className={`text-sm ${isDark ? 'text-cream/60' : 'text-light-muted'}`}>Eingabefrist</p>
               <p className={`font-semibold ${isDark ? 'text-cream' : 'text-light-text'}`}>
@@ -467,7 +471,7 @@ function DashboardPage({ setCurrentPage }) {
             </div>
           </div>
           {deadlinePassed ? (
-            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-red-500/20 text-coral">
+            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-red-500/20 text-coral breathe-warning">
               <span className="w-3 h-3">{Icons.lock}</span>
               Abgelaufen
             </span>
@@ -480,9 +484,11 @@ function DashboardPage({ setCurrentPage }) {
         </GlassCard>
 
         {/* Events Count */}
-        <GlassCard>
+        <GlassCard shimmer hoverLift animate className="float-delayed">
           <div className="flex items-center gap-3 mb-3">
-            <IconBadge icon={Icons.calendar} color="purple" />
+            <div className="sparkle">
+              <IconBadge icon={Icons.calendar} color="purple" />
+            </div>
             <div>
               <p className={`text-sm ${isDark ? 'text-cream/60' : 'text-light-muted'}`}>Meine Veranstaltungen</p>
               <p className={`text-2xl font-bold ${isDark ? 'text-cream' : 'text-light-text'}`}>
@@ -496,9 +502,11 @@ function DashboardPage({ setCurrentPage }) {
         </GlassCard>
 
         {/* Total Events */}
-        <GlassCard>
+        <GlassCard shimmer hoverLift animate className="float-delayed-2">
           <div className="flex items-center gap-3 mb-3">
-            <IconBadge icon={Icons.users} color="cyan" />
+            <div className="sparkle">
+              <IconBadge icon={Icons.users} color="cyan" />
+            </div>
             <div>
               <p className={`text-sm ${isDark ? 'text-cream/60' : 'text-light-muted'}`}>Alle Veranstaltungen</p>
               <p className={`text-2xl font-bold ${isDark ? 'text-cream' : 'text-light-text'}`}>
@@ -513,7 +521,7 @@ function DashboardPage({ setCurrentPage }) {
       </div>
 
       {/* Quick Actions */}
-      <GlassCard className="mb-8">
+      <GlassCard shimmer glow className="mb-8">
         <h2 className={`text-lg font-semibold mb-4 ${isDark ? 'text-cream' : 'text-light-text'}`}>
           Schnellaktionen
         </h2>
@@ -917,9 +925,11 @@ function BoatsPage() {
 
       {/* Conflicts Warning */}
       {conflicts.length > 0 && (
-        <GlassCard className={`mb-6 border-2 ${isDark ? 'border-coral/50' : 'border-red-300'}`}>
+        <GlassCard className={`mb-6 border-2 breathe-warning ${isDark ? 'border-coral/50' : 'border-red-300'}`}>
           <div className="flex items-center gap-3 mb-4">
-            <IconBadge icon={Icons.alertTriangle} color="red" />
+            <div className="pulse-soft">
+              <IconBadge icon={Icons.alertTriangle} color="red" />
+            </div>
             <div>
               <h3 className={`font-semibold ${isDark ? 'text-cream' : 'text-light-text'}`}>
                 {conflicts.length} Konflikt{conflicts.length > 1 ? 'e' : ''} gefunden
@@ -987,6 +997,8 @@ function BoatsPage() {
           return (
             <GlassCard
               key={mb.id}
+              shimmer
+              hoverLift
               className={hasConflict ? `border-2 ${isDark ? 'border-coral/30' : 'border-red-200'}` : ''}
             >
               <div className="flex items-center justify-between mb-4">
@@ -1289,7 +1301,7 @@ function AdminPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Deadline Settings */}
-        <GlassCard>
+        <GlassCard shimmer hoverLift>
           <div className="flex items-center gap-3 mb-4">
             <IconBadge icon={Icons.clock} color="gold" />
             <h2 className={`text-lg font-semibold ${isDark ? 'text-cream' : 'text-light-text'}`}>
@@ -1319,7 +1331,7 @@ function AdminPage() {
         </GlassCard>
 
         {/* Season Settings */}
-        <GlassCard>
+        <GlassCard shimmer hoverLift>
           <div className="flex items-center gap-3 mb-4">
             <IconBadge icon={Icons.calendar} color="purple" />
             <h2 className={`text-lg font-semibold ${isDark ? 'text-cream' : 'text-light-text'}`}>
@@ -1370,9 +1382,11 @@ function AdminPage() {
         </GlassCard>
 
         {/* PDF Export */}
-        <GlassCard>
+        <GlassCard shimmer hoverLift glow>
           <div className="flex items-center gap-3 mb-4">
-            <IconBadge icon={Icons.download} color="cyan" />
+            <div className="sparkle">
+              <IconBadge icon={Icons.download} color="cyan" />
+            </div>
             <h2 className={`text-lg font-semibold ${isDark ? 'text-cream' : 'text-light-text'}`}>
               PDF-Export
             </h2>
@@ -1406,7 +1420,7 @@ function AdminPage() {
         </GlassCard>
 
         {/* Statistics */}
-        <GlassCard>
+        <GlassCard shimmer hoverLift>
           <div className="flex items-center gap-3 mb-4">
             <IconBadge icon={Icons.info} color="emerald" />
             <h2 className={`text-lg font-semibold ${isDark ? 'text-cream' : 'text-light-text'}`}>
@@ -1441,9 +1455,11 @@ function AdminPage() {
         </GlassCard>
 
         {/* Demo Data */}
-        <GlassCard className={`border-2 ${isDark ? 'border-gold-400/30' : 'border-amber-200'}`}>
+        <GlassCard shimmer hoverLift gradientBorder className={`border-2 ${isDark ? 'border-gold-400/30' : 'border-amber-200'}`}>
           <div className="flex items-center gap-3 mb-4">
-            <IconBadge icon={Icons.plus} color="amber" />
+            <div className="pulse-soft">
+              <IconBadge icon={Icons.plus} color="amber" />
+            </div>
             <h2 className={`text-lg font-semibold ${isDark ? 'text-cream' : 'text-light-text'}`}>
               Demo-Daten
             </h2>
@@ -1467,7 +1483,7 @@ function AdminPage() {
         </GlassCard>
 
         {/* Feedback */}
-        <GlassCard>
+        <GlassCard shimmer hoverLift>
           <div className="flex items-center gap-3 mb-4">
             <IconBadge icon={Icons.info} color="purple" />
             <h2 className={`text-lg font-semibold ${isDark ? 'text-cream' : 'text-light-text'}`}>

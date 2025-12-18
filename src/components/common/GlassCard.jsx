@@ -1,6 +1,15 @@
 import { useTheme } from '../../context/ThemeContext';
 
-export function GlassCard({ children, className = '', onClick, shimmer = false }) {
+export function GlassCard({
+  children,
+  className = '',
+  onClick,
+  shimmer = false,
+  glow = false,
+  hoverLift = false,
+  gradientBorder = false,
+  animate = false
+}) {
   const { isDark } = useTheme();
 
   const baseStyles = isDark
@@ -18,6 +27,10 @@ export function GlassCard({ children, className = '', onClick, shimmer = false }
         ${baseStyles}
         ${shadowStyles}
         ${shimmer ? 'shimmer' : ''}
+        ${glow ? 'glow-pulse' : ''}
+        ${hoverLift ? 'hover-lift' : ''}
+        ${gradientBorder ? 'gradient-border' : ''}
+        ${animate ? 'fade-slide-in' : ''}
         ${onClick ? 'cursor-pointer hover:scale-[1.01] transition-transform' : ''}
         ${className}
       `}

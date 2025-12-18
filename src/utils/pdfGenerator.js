@@ -101,22 +101,20 @@ export function generateSeasonCalendarPDF(events, season) {
 
     yOffset += 11;
 
-    // Tabelle für diesen Monat
+    // Tabelle für diesen Monat (ohne Motorboot-Spalte)
     const tableData = monthEvents.map(e => {
-      const bc = boatClasses.find(b => b.id === e.boatClassId);
       return [
         getBoatClassName(e.boatClassId),
         e.type === 'regatta' ? 'Regatta' : 'TL',
         e.name,
         e.organizer || e.location || '-',
-        formatDateRange(e.startDate, e.endDate),
-        getMotorboatName(e.assignedMotorboat || e.requestedMotorboat)
+        formatDateRange(e.startDate, e.endDate)
       ];
     });
 
     autoTable(doc, {
       startY: yOffset,
-      head: [['Gruppe', 'Typ', 'Name', 'Ort/Veranstalter', 'Zeitraum', 'Motorboot']],
+      head: [['Gruppe', 'Typ', 'Name', 'Ort/Veranstalter', 'Zeitraum']],
       body: tableData,
       theme: 'striped',
       headStyles: {
@@ -129,12 +127,11 @@ export function generateSeasonCalendarPDF(events, season) {
         textColor: [30, 41, 59]
       },
       columnStyles: {
-        0: { cellWidth: 22 },
-        1: { cellWidth: 18 },
-        2: { cellWidth: 55 },
-        3: { cellWidth: 45 },
-        4: { cellWidth: 40 },
-        5: { cellWidth: 28 }
+        0: { cellWidth: 25 },
+        1: { cellWidth: 20 },
+        2: { cellWidth: 70 },
+        3: { cellWidth: 55 },
+        4: { cellWidth: 48 }
       },
       margin: { left: 15, right: 15 },
       didParseCell: function(data) {
