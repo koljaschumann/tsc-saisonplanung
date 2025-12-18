@@ -1,5 +1,5 @@
-import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { boatClasses, getBoatClassName, getBoatClassColor } from '../data/boatClasses';
 import { motorboats, getMotorboatName } from '../data/motorboats';
 import { formatDate, formatDateRange, getMonthsInRange } from './dateUtils';
@@ -79,7 +79,7 @@ export function generateSeasonCalendarPDF(events, season) {
       getMotorboatName(e.assignedMotorboat || e.requestedMotorboat)
     ]);
 
-    doc.autoTable({
+    autoTable(doc, {
       startY: yOffset,
       head: [['Typ', 'Name', 'Ort/Veranstalter', 'Zeitraum', 'Motorboot']],
       body: tableData,
@@ -200,7 +200,7 @@ export function generateMotorboatPlanPDF(events, season) {
         ];
       });
 
-      doc.autoTable({
+      autoTable(doc, {
         startY: yOffset,
         head: [['Gruppe', 'Veranstaltung', 'Zeitraum', 'Verladung']],
         body: tableData,
