@@ -5,7 +5,7 @@ import { motorboats, getMotorboatName } from '../data/motorboats';
 import { formatDate, formatDateRange, getMonthsInRange } from './dateUtils';
 
 /**
- * Generiert das Saisonkalender-PDF
+ * Generiert das Saisonkalender-PDF - Monatsweise chronologisch sortiert
  */
 export function generateSeasonCalendarPDF(events, season) {
   const doc = new jsPDF({
@@ -16,6 +16,28 @@ export function generateSeasonCalendarPDF(events, season) {
 
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
+
+  // Monatsnamen auf Deutsch
+  const monthNames = [
+    'Januar', 'Februar', 'März', 'April', 'Mai', 'Juni',
+    'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'
+  ];
+
+  // Events nach Monat gruppieren und chronologisch sortieren
+  const eventsByMonth = {};
+  const sortedEvents = [...events].sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
+
+  sortedEvents.forEach(event => {
+    const date = new Date(event.startDate);
+    const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+    if (!eventsByMonth[monthKey]) {
+      eventsByMonth[monthKey] = [];
+    }
+    eventsByMonth[monthKey].push(event);
+  });
+
+  // Sortierte Monatsliste erstellen
+  const sortedMonths = Object.keys(eventsByMonth).sort();
 
   // Header
   doc.setFillColor(10, 22, 40); // Navy-900
@@ -39,49 +61,62 @@ export function generateSeasonCalendarPDF(events, season) {
   let legendX = 15;
   const legendY = 42;
   doc.setFontSize(8);
+  doc.setTextColor(30, 41, 59);
+  doc.text('Gruppen:', legendX, legendY + 1);
+  legendX += 22;
 
   boatClasses.forEach(bc => {
     const color = hexToRgb(bc.color);
     doc.setFillColor(color.r, color.g, color.b);
-    doc.circle(legendX + 3, legendY, 3, 'F');
+    doc.roundedRect(legendX, legendY - 3, 6, 6, 1, 1, 'F');
     doc.setTextColor(30, 41, 59);
-    doc.text(bc.name, legendX + 8, legendY + 1);
-    legendX += 35;
+    doc.text(bc.name, legendX + 9, legendY + 1);
+    legendX += 32;
   });
 
-  // Events Tabelle pro Bootsklasse
   let yOffset = 55;
 
-  boatClasses.forEach(bc => {
-    const classEvents = events
-      .filter(e => e.boatClassId === bc.id)
-      .sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
+  // Events pro Monat darstellen
+  sortedMonths.forEach(monthKey => {
+    const [year, month] = monthKey.split('-');
+    const monthName = `${monthNames[parseInt(month) - 1]} ${year}`;
+    const monthEvents = eventsByMonth[monthKey];
 
-    if (classEvents.length === 0) return;
+    // Prüfen ob neue Seite nötig
+    if (yOffset > pageHeight - 50) {
+      doc.addPage();
+      yOffset = 20;
+    }
 
-    // Bootsklassen-Header
-    const color = hexToRgb(bc.color);
-    doc.setFillColor(color.r, color.g, color.b);
-    doc.rect(15, yOffset, pageWidth - 30, 7, 'F');
+    // Monats-Header
+    doc.setFillColor(22, 45, 84);
+    doc.rect(15, yOffset, pageWidth - 30, 8, 'F');
     doc.setTextColor(255, 255, 255);
-    doc.setFontSize(10);
+    doc.setFontSize(11);
     doc.setFont('helvetica', 'bold');
-    doc.text(bc.name, 18, yOffset + 5);
+    doc.text(monthName, 18, yOffset + 5.5);
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`${monthEvents.length} Veranstaltung${monthEvents.length > 1 ? 'en' : ''}`, pageWidth - 18, yOffset + 5.5, { align: 'right' });
 
-    yOffset += 10;
+    yOffset += 11;
 
-    // Events für diese Klasse
-    const tableData = classEvents.map(e => [
-      e.type === 'regatta' ? 'Regatta' : 'TL',
-      e.name,
-      e.organizer || e.location || '-',
-      formatDateRange(e.startDate, e.endDate),
-      getMotorboatName(e.assignedMotorboat || e.requestedMotorboat)
-    ]);
+    // Tabelle für diesen Monat
+    const tableData = monthEvents.map(e => {
+      const bc = boatClasses.find(b => b.id === e.boatClassId);
+      return [
+        getBoatClassName(e.boatClassId),
+        e.type === 'regatta' ? 'Regatta' : 'TL',
+        e.name,
+        e.organizer || e.location || '-',
+        formatDateRange(e.startDate, e.endDate),
+        getMotorboatName(e.assignedMotorboat || e.requestedMotorboat)
+      ];
+    });
 
     autoTable(doc, {
       startY: yOffset,
-      head: [['Typ', 'Name', 'Ort/Veranstalter', 'Zeitraum', 'Motorboot']],
+      head: [['Gruppe', 'Typ', 'Name', 'Ort/Veranstalter', 'Zeitraum', 'Motorboot']],
       body: tableData,
       theme: 'striped',
       headStyles: {
@@ -94,25 +129,35 @@ export function generateSeasonCalendarPDF(events, season) {
         textColor: [30, 41, 59]
       },
       columnStyles: {
-        0: { cellWidth: 15 },
-        1: { cellWidth: 50 },
-        2: { cellWidth: 45 },
-        3: { cellWidth: 50 },
-        4: { cellWidth: 30 }
+        0: { cellWidth: 22 },
+        1: { cellWidth: 18 },
+        2: { cellWidth: 55 },
+        3: { cellWidth: 45 },
+        4: { cellWidth: 40 },
+        5: { cellWidth: 28 }
       },
-      margin: { left: 15, right: 15 }
+      margin: { left: 15, right: 15 },
+      didParseCell: function(data) {
+        // Farbige Markierung für Bootsklasse in der ersten Spalte
+        if (data.section === 'body' && data.column.index === 0) {
+          const event = monthEvents[data.row.index];
+          if (event) {
+            const bc = boatClasses.find(b => b.id === event.boatClassId);
+            if (bc) {
+              const color = hexToRgb(bc.color);
+              data.cell.styles.fillColor = [color.r, color.g, color.b];
+              data.cell.styles.textColor = [255, 255, 255];
+              data.cell.styles.fontStyle = 'bold';
+            }
+          }
+        }
+      }
     });
 
-    yOffset = doc.lastAutoTable.finalY + 10;
-
-    // Neue Seite wenn nötig
-    if (yOffset > pageHeight - 30) {
-      doc.addPage();
-      yOffset = 20;
-    }
+    yOffset = doc.lastAutoTable.finalY + 8;
   });
 
-  // Footer
+  // Footer mit Seitenzahlen
   const totalPages = doc.internal.getNumberOfPages();
   for (let i = 1; i <= totalPages; i++) {
     doc.setPage(i);
