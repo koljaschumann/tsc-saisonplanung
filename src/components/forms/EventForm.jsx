@@ -31,7 +31,9 @@ export function EventForm({ onSuccess, editEvent = null }) {
   const canEdit = !deadlinePassed || currentUser.isAdmin;
 
   // Motorboote sortiert nach Priorität für die aktuelle Bootsklasse
-  const sortedMotorboats = getMotorboatsSortedByPriority(currentUser.boatClassId);
+  const sortedMotorboats = currentUser.boatClassId
+    ? getMotorboatsSortedByPriority(currentUser.boatClassId)
+    : motorboats;
 
   const inputClass = `
     w-full px-3 py-2 rounded-lg border text-sm

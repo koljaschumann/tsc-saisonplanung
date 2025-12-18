@@ -8,15 +8,33 @@ const ADMIN_PASSWORD = 'tsc2025'; // In Produktion: sicherer speichern
 export function AuthProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(() => {
     const saved = localStorage.getItem('tsc-saisonplanung-user');
-    return saved ? JSON.parse(saved) : { boatClassId: null, isAdmin: false };
+    return saved ? JSON.parse(saved) : {
+      name: '',
+      boatClassIds: [], // Mehrere Bootsklassen
+      selectedBoatClassId: null, // Aktuell ausgewählte Klasse für Eingaben
+      isAdmin: false
+    };
   });
 
   useEffect(() => {
     localStorage.setItem('tsc-saisonplanung-user', JSON.stringify(currentUser));
   }, [currentUser]);
 
+  // Trainer mit Name und Bootsklassen registrieren
+  const registerTrainer = (name, boatClassIds) => {
+    setCurrentUser(prev => ({
+      ...prev,
+      name,
+      boatClassIds,
+      selectedBoatClassId: boatClassIds[0] || null
+    }));
+  };
+
+  // Aktive Bootsklasse für Eingaben wechseln
   const selectBoatClass = (boatClassId) => {
-    setCurrentUser(prev => ({ ...prev, boatClassId }));
+    if (currentUser.boatClassIds.includes(boatClassId) || currentUser.isAdmin) {
+      setCurrentUser(prev => ({ ...prev, selectedBoatClassId: boatClassId }));
+    }
   };
 
   const loginAsAdmin = (password) => {
@@ -32,15 +50,26 @@ export function AuthProvider({ children }) {
   };
 
   const logout = () => {
-    setCurrentUser({ boatClassId: null, isAdmin: false });
+    setCurrentUser({
+      name: '',
+      boatClassIds: [],
+      selectedBoatClassId: null,
+      isAdmin: false
+    });
   };
 
-  const isLoggedIn = currentUser.boatClassId !== null;
+  // Kompatibilität: boatClassId = selectedBoatClassId
+  const isLoggedIn = currentUser.name !== '' && currentUser.boatClassIds.length > 0;
 
   return (
     <AuthContext.Provider value={{
-      currentUser,
+      currentUser: {
+        ...currentUser,
+        // Kompatibilität mit altem Code
+        boatClassId: currentUser.selectedBoatClassId
+      },
       isLoggedIn,
+      registerTrainer,
       selectBoatClass,
       loginAsAdmin,
       logoutAdmin,

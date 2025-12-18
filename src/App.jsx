@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { DataProvider, useData } from './context/DataContext';
-import { ToastProvider } from './components/common/Toast';
+import { ToastProvider, useToast } from './components/common/Toast';
 import { GlassCard } from './components/common/GlassCard';
 import { Button } from './components/common/Button';
 import { Modal } from './components/common/Modal';
@@ -22,10 +22,12 @@ import { generateSeasonCalendarPDF, generateMotorboatPlanPDF, savePDF } from './
 // ============================================
 function LoginScreen() {
   const { isDark } = useTheme();
-  const { selectBoatClass, loginAsAdmin } = useAuth();
+  const { registerTrainer, loginAsAdmin } = useAuth();
   const [showAdminLogin, setShowAdminLogin] = useState(false);
   const [adminPassword, setAdminPassword] = useState('');
   const [error, setError] = useState('');
+  const [trainerName, setTrainerName] = useState('');
+  const [selectedBoatClassIds, setSelectedBoatClassIds] = useState([]);
 
   const handleAdminLogin = (e) => {
     e.preventDefault();
@@ -37,6 +39,35 @@ function LoginScreen() {
       setError('Falsches Passwort');
     }
   };
+
+  const toggleBoatClass = (boatClassId) => {
+    setSelectedBoatClassIds(prev =>
+      prev.includes(boatClassId)
+        ? prev.filter(id => id !== boatClassId)
+        : [...prev, boatClassId]
+    );
+  };
+
+  const handleTrainerLogin = () => {
+    if (!trainerName.trim()) {
+      setError('Bitte Namen eingeben');
+      return;
+    }
+    if (selectedBoatClassIds.length === 0) {
+      setError('Bitte mindestens eine Trainingsgruppe auswählen');
+      return;
+    }
+    registerTrainer(trainerName.trim(), selectedBoatClassIds);
+  };
+
+  const inputClass = `
+    w-full px-3 py-2 rounded-lg border
+    ${isDark
+      ? 'bg-navy-700 border-navy-600 text-cream placeholder-cream/40'
+      : 'bg-white border-light-border text-light-text placeholder-light-muted'}
+    focus:outline-none focus:ring-2
+    ${isDark ? 'focus:ring-gold-400' : 'focus:ring-teal-400'}
+  `;
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
@@ -55,31 +86,77 @@ function LoginScreen() {
 
         <GlassCard>
           <h2 className={`text-xl font-semibold mb-4 ${isDark ? 'text-cream' : 'text-light-text'}`}>
-            Trainingsgruppe wählen
+            Trainer-Anmeldung
           </h2>
-          <div className="grid grid-cols-2 gap-3 mb-6">
-            {boatClasses.map(bc => (
-              <button
-                key={bc.id}
-                onClick={() => selectBoatClass(bc.id)}
-                className={`
-                  p-4 rounded-xl border-2 transition-all
-                  hover:scale-105
-                  ${isDark
-                    ? 'bg-navy-800/50 border-navy-600 hover:border-gold-400/50'
-                    : 'bg-white border-light-border hover:border-teal-400'}
-                `}
-              >
-                <div
-                  className="w-4 h-4 rounded-full mx-auto mb-2"
-                  style={{ backgroundColor: bc.color }}
-                />
-                <span className={`text-sm font-medium ${isDark ? 'text-cream' : 'text-light-text'}`}>
-                  {bc.name}
-                </span>
-              </button>
-            ))}
+
+          {/* Trainer Name Input */}
+          <div className="mb-4">
+            <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-cream/80' : 'text-light-muted'}`}>
+              Dein Name *
+            </label>
+            <input
+              type="text"
+              value={trainerName}
+              onChange={(e) => { setTrainerName(e.target.value); setError(''); }}
+              className={inputClass}
+              placeholder="z.B. Max Mustermann"
+            />
           </div>
+
+          {/* Boat Class Multi-Select */}
+          <div className="mb-4">
+            <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-cream/80' : 'text-light-muted'}`}>
+              Deine Trainingsgruppe(n) *
+            </label>
+            <p className={`text-xs mb-3 ${isDark ? 'text-cream/60' : 'text-light-muted'}`}>
+              Wähle alle Gruppen, die du betreust
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              {boatClasses.map(bc => {
+                const isSelected = selectedBoatClassIds.includes(bc.id);
+                return (
+                  <button
+                    key={bc.id}
+                    type="button"
+                    onClick={() => { toggleBoatClass(bc.id); setError(''); }}
+                    className={`
+                      p-3 rounded-xl border-2 transition-all
+                      ${isSelected
+                        ? isDark
+                          ? 'bg-gold-400/20 border-gold-400'
+                          : 'bg-teal-100 border-teal-400'
+                        : isDark
+                          ? 'bg-navy-800/50 border-navy-600 hover:border-gold-400/50'
+                          : 'bg-white border-light-border hover:border-teal-400'}
+                    `}
+                  >
+                    <div className="flex items-center gap-2">
+                      <div
+                        className="w-4 h-4 rounded-full flex-shrink-0"
+                        style={{ backgroundColor: bc.color }}
+                      />
+                      <span className={`text-sm font-medium ${isDark ? 'text-cream' : 'text-light-text'}`}>
+                        {bc.name}
+                      </span>
+                      {isSelected && (
+                        <span className={`ml-auto w-4 h-4 ${isDark ? 'text-gold-400' : 'text-teal-600'}`}>
+                          {Icons.check}
+                        </span>
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {error && (
+            <p className="mb-4 text-sm text-coral">{error}</p>
+          )}
+
+          <Button onClick={handleTrainerLogin} className="w-full mb-4">
+            Anmelden
+          </Button>
 
           <div className={`border-t pt-4 ${isDark ? 'border-navy-700' : 'border-light-border'}`}>
             <Button
@@ -113,18 +190,11 @@ function LoginScreen() {
                 type="password"
                 value={adminPassword}
                 onChange={(e) => setAdminPassword(e.target.value)}
-                className={`
-                  w-full px-3 py-2 rounded-lg border
-                  ${isDark
-                    ? 'bg-navy-700 border-navy-600 text-cream placeholder-cream/40'
-                    : 'bg-white border-light-border text-light-text placeholder-light-muted'}
-                  focus:outline-none focus:ring-2
-                  ${isDark ? 'focus:ring-gold-400' : 'focus:ring-teal-400'}
-                `}
+                className={inputClass}
                 placeholder="Admin-Passwort eingeben"
                 autoFocus
               />
-              {error && (
+              {error && showAdminLogin && (
                 <p className="mt-2 text-sm text-coral">{error}</p>
               )}
             </div>
@@ -157,8 +227,9 @@ function LoginScreen() {
 // ============================================
 function Navigation({ currentPage, setCurrentPage }) {
   const { isDark, toggleTheme } = useTheme();
-  const { currentUser, logout, logoutAdmin } = useAuth();
+  const { currentUser, logout, logoutAdmin, selectBoatClass, boatClasses: authBoatClasses } = useAuth();
   const { isDeadlinePassed } = useData();
+  const [showBoatClassMenu, setShowBoatClassMenu] = useState(false);
 
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: Icons.home },
@@ -170,6 +241,11 @@ function Navigation({ currentPage, setCurrentPage }) {
   if (currentUser.isAdmin) {
     navItems.push({ id: 'admin', label: 'Admin', icon: Icons.settings });
   }
+
+  // Trainer's assigned boat classes
+  const trainerBoatClasses = boatClasses.filter(bc =>
+    currentUser.boatClassIds?.includes(bc.id)
+  );
 
   return (
     <nav className={`
@@ -227,22 +303,71 @@ function Navigation({ currentPage, setCurrentPage }) {
               </span>
             </button>
 
-            {/* User Info */}
-            <div className={`
-              flex items-center gap-2 px-3 py-1.5 rounded-full
-              ${isDark ? 'bg-navy-800' : 'bg-light-border/50'}
-            `}>
-              <div
-                className="w-3 h-3 rounded-full"
-                style={{ backgroundColor: getBoatClassColor(currentUser.boatClassId) }}
-              />
-              <span className={`text-sm ${isDark ? 'text-cream' : 'text-light-text'}`}>
-                {getBoatClassName(currentUser.boatClassId)}
-              </span>
-              {currentUser.isAdmin && (
-                <span className={`text-xs px-1.5 py-0.5 rounded ${isDark ? 'bg-gold-400/20 text-gold-400' : 'bg-teal-100 text-teal-600'}`}>
-                  Admin
+            {/* User Info with Boat Class Switcher */}
+            <div className="relative">
+              <button
+                onClick={() => trainerBoatClasses.length > 1 && setShowBoatClassMenu(!showBoatClassMenu)}
+                className={`
+                  flex items-center gap-2 px-3 py-1.5 rounded-full
+                  ${isDark ? 'bg-navy-800' : 'bg-light-border/50'}
+                  ${trainerBoatClasses.length > 1 ? 'cursor-pointer hover:ring-2 ring-gold-400/50' : ''}
+                `}
+              >
+                <div
+                  className="w-3 h-3 rounded-full"
+                  style={{ backgroundColor: getBoatClassColor(currentUser.boatClassId) }}
+                />
+                <span className={`text-sm ${isDark ? 'text-cream' : 'text-light-text'}`}>
+                  {currentUser.name || getBoatClassName(currentUser.boatClassId)}
                 </span>
+                {trainerBoatClasses.length > 1 && (
+                  <span className={`w-3 h-3 ${isDark ? 'text-cream/60' : 'text-light-muted'}`}>
+                    {Icons.chevronDown}
+                  </span>
+                )}
+                {currentUser.isAdmin && (
+                  <span className={`text-xs px-1.5 py-0.5 rounded ${isDark ? 'bg-gold-400/20 text-gold-400' : 'bg-teal-100 text-teal-600'}`}>
+                    Admin
+                  </span>
+                )}
+              </button>
+
+              {/* Boat Class Dropdown */}
+              {showBoatClassMenu && trainerBoatClasses.length > 1 && (
+                <div className={`
+                  absolute right-0 top-full mt-2 w-48 rounded-xl shadow-xl z-50 overflow-hidden
+                  ${isDark ? 'bg-navy-800 border border-navy-700' : 'bg-white border border-light-border'}
+                `}>
+                  <div className={`px-3 py-2 border-b ${isDark ? 'border-navy-700' : 'border-light-border'}`}>
+                    <p className={`text-xs font-medium ${isDark ? 'text-cream/60' : 'text-light-muted'}`}>
+                      Aktive Trainingsgruppe
+                    </p>
+                  </div>
+                  {trainerBoatClasses.map(bc => (
+                    <button
+                      key={bc.id}
+                      onClick={() => {
+                        selectBoatClass(bc.id);
+                        setShowBoatClassMenu(false);
+                      }}
+                      className={`
+                        w-full px-3 py-2 flex items-center gap-2 text-sm transition-colors
+                        ${currentUser.boatClassId === bc.id
+                          ? isDark ? 'bg-gold-400/20 text-gold-400' : 'bg-teal-100 text-teal-700'
+                          : isDark ? 'text-cream hover:bg-navy-700' : 'text-light-text hover:bg-gray-50'}
+                      `}
+                    >
+                      <div
+                        className="w-3 h-3 rounded-full"
+                        style={{ backgroundColor: bc.color }}
+                      />
+                      {bc.name}
+                      {currentUser.boatClassId === bc.id && (
+                        <span className="ml-auto w-4 h-4">{Icons.check}</span>
+                      )}
+                    </button>
+                  ))}
+                </div>
               )}
             </div>
 
@@ -286,6 +411,14 @@ function Navigation({ currentPage, setCurrentPage }) {
           ))}
         </div>
       </div>
+
+      {/* Click outside to close dropdown */}
+      {showBoatClassMenu && (
+        <div
+          className="fixed inset-0 z-30"
+          onClick={() => setShowBoatClassMenu(false)}
+        />
+      )}
     </nav>
   );
 }
@@ -305,10 +438,19 @@ function DashboardPage({ setCurrentPage }) {
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
       <div className="mb-8">
         <h1 className={`text-2xl font-bold mb-2 ${isDark ? 'text-cream' : 'text-light-text'}`}>
-          Willkommen, {getBoatClassName(currentUser.boatClassId)}!
+          Willkommen, {currentUser.name || getBoatClassName(currentUser.boatClassId)}!
         </h1>
         <p className={isDark ? 'text-cream/60' : 'text-light-muted'}>
           {season.name} - Plane deine Regatten und Trainingslager
+          {currentUser.boatClassId && (
+            <span className="ml-2 inline-flex items-center gap-1.5">
+              <span
+                className="w-2.5 h-2.5 rounded-full"
+                style={{ backgroundColor: getBoatClassColor(currentUser.boatClassId) }}
+              />
+              {getBoatClassName(currentUser.boatClassId)}
+            </span>
+          )}
         </p>
       </div>
 
@@ -937,7 +1079,7 @@ function BoatsPage() {
 function AdminPage() {
   const { isDark } = useTheme();
   const { currentUser } = useAuth();
-  const { events, deadline, season, setDeadline, setSeason, resetAllData } = useData();
+  const { events, deadline, season, setDeadline, setSeason, resetAllData, loadDemoData } = useData();
   const { addToast } = useToast();
 
   const [newDeadline, setNewDeadline] = useState(deadline);
@@ -1002,6 +1144,39 @@ function AdminPage() {
     resetAllData();
     setShowResetConfirm(false);
     addToast('Alle Daten wurden zurückgesetzt', 'warning');
+  };
+
+  const handleLoadDemoData = () => {
+    const count = loadDemoData();
+    addToast(`${count} Demo-Veranstaltungen geladen (inkl. Konflikte)`, 'success');
+  };
+
+  const handleFeedback = (type) => {
+    const baseUrl = 'https://github.com/KoljaL/tsc-saisonplanung/issues/new';
+    const labels = type === 'bug' ? 'bug' : 'enhancement';
+    const title = type === 'bug' ? '[Bug] ' : '[Feature] ';
+    const body = encodeURIComponent(`## Beschreibung
+(Bitte beschreibe das Problem oder die Verbesserung)
+
+## Schritte zum Reproduzieren (bei Bugs)
+1.
+2.
+3.
+
+## Erwartetes Verhalten
+
+
+## Aktuelles Verhalten
+
+
+## Browser / Gerät
+- Browser:
+- Gerät:
+
+---
+*Gesendet von TSC Saisonplanung App*`);
+
+    window.open(`${baseUrl}?labels=${labels}&title=${encodeURIComponent(title)}&body=${body}`, '_blank');
   };
 
   const inputClass = `
@@ -1174,6 +1349,66 @@ function AdminPage() {
               <span className={`font-semibold ${isDark ? 'text-cream' : 'text-light-text'}`}>
                 {new Set(events.map(e => e.boatClassId)).size}
               </span>
+            </div>
+          </div>
+        </GlassCard>
+
+        {/* Demo Data */}
+        <GlassCard className={`border-2 ${isDark ? 'border-gold-400/30' : 'border-amber-200'}`}>
+          <div className="flex items-center gap-3 mb-4">
+            <IconBadge icon={Icons.plus} color="amber" />
+            <h2 className={`text-lg font-semibold ${isDark ? 'text-cream' : 'text-light-text'}`}>
+              Demo-Daten
+            </h2>
+          </div>
+
+          <div className="space-y-3">
+            <p className={`text-sm ${isDark ? 'text-cream/60' : 'text-light-muted'}`}>
+              Lade Beispieldaten mit vorgefertigten Konflikten zum Testen der Konfliktauflösung.
+            </p>
+            <Button
+              onClick={handleLoadDemoData}
+              icon={Icons.download}
+              className="w-full"
+            >
+              Demo-Daten laden
+            </Button>
+            <p className={`text-xs ${isDark ? 'text-gold-400/80' : 'text-amber-600'}`}>
+              Enthält 10 Veranstaltungen mit 2 Motorboot-Konflikten
+            </p>
+          </div>
+        </GlassCard>
+
+        {/* Feedback */}
+        <GlassCard>
+          <div className="flex items-center gap-3 mb-4">
+            <IconBadge icon={Icons.info} color="purple" />
+            <h2 className={`text-lg font-semibold ${isDark ? 'text-cream' : 'text-light-text'}`}>
+              Feedback
+            </h2>
+          </div>
+
+          <div className="space-y-3">
+            <p className={`text-sm ${isDark ? 'text-cream/60' : 'text-light-muted'}`}>
+              Hilf uns, die App zu verbessern! Melde Bugs oder schlage neue Funktionen vor.
+            </p>
+            <div className="flex gap-2">
+              <Button
+                variant="secondary"
+                onClick={() => handleFeedback('bug')}
+                icon={Icons.alertTriangle}
+                className="flex-1"
+              >
+                Bug melden
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={() => handleFeedback('feature')}
+                icon={Icons.plus}
+                className="flex-1"
+              >
+                Idee vorschlagen
+              </Button>
             </div>
           </div>
         </GlassCard>
